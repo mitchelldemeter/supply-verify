@@ -288,7 +288,7 @@ footer b{color:var(--mag);font-weight:400}
   </div>
 
   <footer>
-    <div><b>No server. No cache. No API key.</b> Your browser talks to public nodes and every call is in the receipts.</div>
+    <div><b>No API keys. No accounts.</b> Your browser talks to public nodes directly. Chains whose public nodes block browsers (Solana, TON, Zcash) go through our cached relay, which only forwards to those public nodes. Every call is in the receipts.</div>
     <div>History needs nodes that keep archive state. Gaps show as gaps, never as guesses. Not financial advice, just arithmetic.</div>
   </footer>
 </div>
@@ -319,15 +319,15 @@ const EVMT=(key,sym,name,address,cg)=>({key,sym,name,chain:"ethereum",kind:"erc2
 const TOKENS=[
   {key:"btc",sym:"BTC",name:"Bitcoin",kind:"btc",cg:"bitcoin",chainName:"Bitcoin",how:"consensus schedule",claims:[]},
   {key:"eth",sym:"ETH",name:"Ethereum",kind:"eth",cg:"ethereum",chainName:"Ethereum",how:"burn, block by block",claims:[]},
-  {key:"usdt",sym:"USDT",name:"Tether",kind:"multi",dec:6,cg:"tether",chainName:"5 chains",how:"totalSupply() on every chain",claims:[],
-   members:[{label:"Ethereum",chain:"ethereum",address:"0xdAC17F958D2ee523a2206206994597C13D831ec7",dec:6},{label:"Tron (TRC-20)",tron:true,hex:"0xa614f803b6fd780986a42c78ec9c7f77e6ded13c",dec:6},{label:"Arbitrum",chain:"arbitrum",address:"0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",dec:6},{label:"Polygon",chain:"polygon",address:"0xc2132D05D31c914a87C6611C10748AEb04B58e8F",dec:6},{label:"Avalanche",chain:"avalanche",address:"0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",dec:6}],
-   treasuries:[{l:"Tether Treasury, authorized but not issued",chain:"ethereum",token:"0xdAC17F958D2ee523a2206206994597C13D831ec7",a:"0x5754284f345afc66a98fbB0a0Afe71e0F007B949"}],uncovered:"Solana, TON, Aptos, Near and others. Binance-Peg USDT on BNB Chain is left out on purpose: it is a wrapper backed by USDT held on other chains, so adding it would double count",
+  {key:"usdt",sym:"USDT",name:"Tether",kind:"multi",dec:6,cg:"tether",chainName:"7 chains",how:"totalSupply() on every chain",claims:[],
+   members:[{label:"Ethereum",chain:"ethereum",address:"0xdAC17F958D2ee523a2206206994597C13D831ec7",dec:6},{label:"Tron (TRC-20)",tron:true,hex:"0xa614f803b6fd780986a42c78ec9c7f77e6ded13c",dec:6},{label:"Arbitrum",chain:"arbitrum",address:"0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",dec:6},{label:"Polygon",chain:"polygon",address:"0xc2132D05D31c914a87C6611C10748AEb04B58e8F",dec:6},{label:"Avalanche",chain:"avalanche",address:"0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",dec:6},{label:"Solana (SPL)",sol:true,mint:"Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",dec:6},{label:"TON (jetton)",ton:true,master:"EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",dec:6}],
+   treasuries:[{l:"Tether Treasury, authorized but not issued",chain:"ethereum",token:"0xdAC17F958D2ee523a2206206994597C13D831ec7",a:"0x5754284f345afc66a98fbB0a0Afe71e0F007B949"}],uncovered:"Aptos, Near, Kaia and smaller chains. Binance-Peg USDT on BNB Chain is left out on purpose: it is a wrapper backed by USDT held on other chains, so adding it would double count",
    note:"<p>Supply is only half of a stablecoin audit. The other half is reserves, which live off-chain in bank and custody accounts. The chain can prove how many tokens exist, never what backs them.</p>"},
   {key:"bnb",sym:"BNB",name:"BNB",kind:"bnb",cg:"binancecoin",burnClaim:true,chainName:"BNB Chain",how:"burn address",claims:[]},
   {key:"xrp",sym:"XRP",name:"XRP",kind:"xrp",cg:"ripple",chainName:"XRP Ledger",how:"ledger total_coins",claims:[]},
-  {key:"usdc",sym:"USDC",name:"USD Coin",kind:"multi",dec:6,cg:"usd-coin",chainName:"6 chains",how:"totalSupply() on every chain",claims:[],
-   members:[{label:"Ethereum",chain:"ethereum",address:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",dec:6},{label:"Base",chain:"base",address:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",dec:6},{label:"Arbitrum",chain:"arbitrum",address:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831",dec:6},{label:"Polygon",chain:"polygon",address:"0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",dec:6},{label:"Avalanche",chain:"avalanche",address:"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",dec:6},{label:"OP Mainnet",chain:"optimism",address:"0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",dec:6}],
-   treasuries:[],uncovered:"Solana, Sui, Stellar, Noble and others",
+  {key:"usdc",sym:"USDC",name:"USD Coin",kind:"multi",dec:6,cg:"usd-coin",chainName:"7 chains",how:"totalSupply() on every chain",claims:[],
+   members:[{label:"Ethereum",chain:"ethereum",address:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",dec:6},{label:"Base",chain:"base",address:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",dec:6},{label:"Arbitrum",chain:"arbitrum",address:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831",dec:6},{label:"Polygon",chain:"polygon",address:"0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",dec:6},{label:"Avalanche",chain:"avalanche",address:"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",dec:6},{label:"OP Mainnet",chain:"optimism",address:"0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",dec:6},{label:"Solana (SPL)",sol:true,mint:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",dec:6}],
+   treasuries:[],uncovered:"Sui, Stellar, Noble, Aptos and smaller chains",
    note:"<p>Supply is only half of a stablecoin audit. The other half is reserves, which live off-chain in bank and custody accounts. The chain can prove how many tokens exist, never what backs them.</p>"},
   {key:"sol",sym:"SOL",name:"Solana",kind:"sol",cg:"solana",chainName:"Solana",how:"getSupply",claims:[]},
   {key:"trx",sym:"TRX",name:"TRON",kind:"trx",cg:"tron",chainName:"Tron",how:"node burn counter",claims:[]},
@@ -706,6 +706,7 @@ function zecSub(h){const base=1250000000,SSI=20000,SSS=10000,B=653600;
   if(h<SSI/2)return Math.floor(base/SSI)*h; if(h<SSI)return Math.floor(base/SSI)*(h+1);
   const hv=h<B?Math.floor((h-SSS)/840000):Math.floor((2*(B-SSS)+(h-B))/1680000);
   let s=Math.floor(base/2**hv); if(h>=B)s=Math.floor(s/2); return s}
+async function zecStats(){try{return (await relay({net:"zec"},"Zcash tip height")).j}catch(e){return JSON.parse(await jget("https://api.blockchair.com/zcash/stats","GET Zcash tip height"))}}
 function zecIssued(h){let s=0;for(let i=1;i<=h;i++)s+=zecSub(i);return BigInt(s)}
 /* Monero: smooth emission, (M - A) >> speed factor, floored at the 0.6 XMR tail */
 let xmrCache={h:-1,A:0n};
@@ -718,8 +719,13 @@ const HL="https://api.hyperliquid.xyz/info";
 const TRONRPC="https://api.trongrid.io/jsonrpc";
 async function tronCall(hex,data,what){const j=await jpost(TRONRPC,{jsonrpc:"2.0",id:1,method:"eth_call",params:[{to:hex,data},"latest"]},what);return BigInt(j.result)}
 function solRpc(){try{return localStorage.getItem("sv-sol-rpc")||""}catch(e){return ""}}
+/* Our own cached relay (Vercel function) for chains whose public nodes block browsers. Same answers for every visitor, no keys. */
+const RELAY=/github\.io$/.test(location.hostname)||location.protocol==="file:"?"https://supply-verify.vercel.app/api/rpc":"/api/rpc";
+async function relay(params,what){const u=RELAY+"?"+new URLSearchParams(params).toString();const r=await fetch(u);const up=r.headers.get("x-upstream")||"relay";const t=await r.text();receipt(`${what.padEnd(44)} relay → ${up}${r.ok?"":"  FAILED "+r.status}`);if(!r.ok)throw new Error("relay "+r.status);return {j:JSON.parse(t),up}}
 async function solCall(method,params,what){
-  const urls=[solRpc(),"https://api.mainnet-beta.solana.com"].filter(Boolean);let last;
+  let last;
+  try{const {j,up}=await relay({net:"sol",body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})},what);if(j.result)return {j,u:"https://"+up};last=new Error("no result")}catch(e){last=e}
+  const urls=[solRpc(),"https://api.mainnet-beta.solana.com"].filter(Boolean);
   for(const u of urls){try{const j=await jpost(u,{jsonrpc:"2.0",id:1,method,params},what);if(j.result)return {j,u};last=new Error(j.error?.message||"no result")}catch(e){last=e}}
   throw last}
 
@@ -734,13 +740,13 @@ const NATIVE={
       live:{ms:30000,state:{h},tick:async s=>{const {h:n}=await btcHeight();const ev=[];for(let i=s.h+1;i<=n;i++){const sb=5000000000n>>BigInt(Math.floor(i/210000));ev.push({tag:"mint",cls:"mint",html:`Block ${fnum(i)} printed ${fmt(sb,8,3)} BTC`,right:"#"+fnum(i)})}if(n>s.h){s.h=n;return {ev,total:btcIssued(n)}}return {ev}}}};
   },
   async zec(t){
-    const j=JSON.parse(await jget("https://api.blockchair.com/zcash/stats","GET Zcash tip height"));const h=(j.data.best_block_height??j.data.blocks-1);
+    const j=await zecStats();const h=(j.data.best_block_height??j.data.blocks-1);
     const total=zecIssued(h);const sub=BigInt(zecSub(h));
     return {dec:8,total,receipt:`Block subsidy summed from genesis to height ${fnum(h)} (tip from blockchair.com, an explorer)`,
       kv:[["Height",fnum(h)],["Subsidy now",fmt(sub,8,4)+" ZEC"],["Hard cap","21,000,000 ZEC"]],
       flowsTitle:"Issued per block",flows:[["Issued per block",fmt(sub,8,4)+" ZEC"],["Issued per day (1,152 blocks)",fmt(sub*1152n,8,0)+" ZEC"]],
       method:`<p>Zcash issuance follows consensus rules: a slow start over the first 20,000 blocks, 12.5 ZEC blocks, the Blossom upgrade that halved block time and per-block reward, then halvings. The total here is that schedule summed to the tip, and it includes the dev fund and lockbox share of every block.</p><p>The tip height comes from an explorer because no Zcash node offers a public browser endpoint. Shielded pools can't be audited by balance, only by the turnstile totals each node reports, which is on the roadmap.</p>`,
-      live:{ms:60000,state:{h},tick:async s=>{const j2=JSON.parse(await jget("https://api.blockchair.com/zcash/stats","GET Zcash tip height"));const n=(j2.data.best_block_height??j2.data.blocks-1);const ev=[];if(n>s.h){ev.push({tag:"mint",cls:"mint",html:`${n-s.h} new block(s), +${fmt(BigInt(zecSub(n))*BigInt(n-s.h),8,4)} ZEC`,right:"#"+fnum(n)});s.h=n;return {ev,total:zecIssued(n)}}return {ev}}}};
+      live:{ms:60000,state:{h},tick:async s=>{const j2=await zecStats();const n=(j2.data.best_block_height??j2.data.blocks-1);const ev=[];if(n>s.h){ev.push({tag:"mint",cls:"mint",html:`${n-s.h} new block(s), +${fmt(BigInt(zecSub(n))*BigInt(n-s.h),8,4)} ZEC`,right:"#"+fnum(n)});s.h=n;return {ev,total:zecIssued(n)}}return {ev}}}};
   },
   async xmr(t){
     const j=await jpost(XMR_NODES[0],{jsonrpc:"2.0",id:"0",method:"get_last_block_header"},"get_last_block_header");const bh=j.result.block_header;const h=bh.height;
@@ -827,6 +833,8 @@ const NATIVE={
     const rows=[];let total=0n;
     const vals=await pool(t.members,4,async m=>{
       let v;if(m.tron){v=await tronCall(m.hex,"0x18160ddd",`Tron eth_call totalSupply() ${m.label}`)}
+      else if(m.sol){const {j}=await solCall("getTokenSupply",[m.mint],`getTokenSupply ${m.label}`);v=BigInt(j.result.value.amount)}
+      else if(m.ton){const {j}=await relay({net:"ton",q:m.master},`jetton master ${m.label}`);v=BigInt(j.jetton_masters[0].total_supply)}
       else{v=(await rpc(m.chain,`eth_call totalSupply() on ${short(m.address)}`,p=>new Contract(m.address,ERC,p).totalSupply())).r}
       if(m.dec>t.dec)v=v/(10n**BigInt(m.dec-t.dec));return v});
     t.members.forEach((m,i)=>{if(vals[i]!=null){total+=vals[i];rows.push({l:m.label,v:vals[i]})}else rows.push({l:m.label+" (node did not answer)",v:0n})});
