@@ -909,7 +909,7 @@ async function renderBoard(){
       tr.querySelector(".ch").innerHTML=chainVal!=null?`${compact(Number(formatUnits(chainVal,R.dec)))}${lbl}`:`<span class="muted">${R.needsKey?"needs RPC key":"no counter"}</span>`;
       tr.querySelector(".cg").textContent=claim!=null?compact(Number(claim))+lbl:(c?.total_supply!=null?compact(c.total_supply):"—");
       if(lbl===" burned"&&chainVal!=null&&claim){const share=Number(formatUnits(chainVal,R.dec))/Number(claim)*100;tr.querySelector(".vd").innerHTML=`<span class="pill ${share>99.9?"good":"warn"}">${share.toFixed(0)}% of claimed burn provable</span>`;return}
-      if(t.kind==="multi"&&chainVal!=null&&claim){const share=Number(formatUnits(chainVal,R.dec))/Number(claim)*100;tr.querySelector(".vd").innerHTML=`<span class="pill warn">${share.toFixed(0)}% readable on-chain</span>`;return}
+      if(t.kind==="multi"&&chainVal!=null&&claim&&Number(formatUnits(chainVal,R.dec))<Number(claim)*0.999){const share=Number(formatUnits(chainVal,R.dec))/Number(claim)*100;tr.querySelector(".vd").innerHTML=`<span class="pill warn">${share.toFixed(0)}% readable on-chain</span>`;return}
       if(chainVal!=null&&claim!=null){const v=big(claim,R.dec);const pct=v>0n?Number((chainVal-v)*1000000n/v)/10000:0;const ap=Math.abs(pct);const cls=ap<0.1?"good":ap<2?"warn":"bad";
         tr.querySelector(".vd").innerHTML=`<span class="pill ${cls}">${ap<0.1?"Checks out":ap<2?"Drifting":"Doesn't add up"} ${pct>=0?"+":""}${pct.toFixed(2)}%</span>`}
       else tr.querySelector(".vd").innerHTML=`<span class="pill idle">Can't test</span>`;
