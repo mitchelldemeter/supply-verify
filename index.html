@@ -323,7 +323,7 @@ const TOKENS=[
    members:[{label:"Ethereum",chain:"ethereum",address:"0xdAC17F958D2ee523a2206206994597C13D831ec7",dec:6},{label:"Tron (TRC-20)",tron:true,hex:"0xa614f803b6fd780986a42c78ec9c7f77e6ded13c",dec:6},{label:"Arbitrum",chain:"arbitrum",address:"0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",dec:6},{label:"Polygon",chain:"polygon",address:"0xc2132D05D31c914a87C6611C10748AEb04B58e8F",dec:6},{label:"Avalanche",chain:"avalanche",address:"0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",dec:6},{label:"Solana (SPL)",sol:true,mint:"Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",dec:6},{label:"TON (jetton)",ton:true,master:"EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",dec:6}],
    treasuries:[{l:"Tether Treasury, authorized but not issued",chain:"ethereum",token:"0xdAC17F958D2ee523a2206206994597C13D831ec7",a:"0x5754284f345afc66a98fbB0a0Afe71e0F007B949"}],uncovered:"Aptos, Near, Kaia and smaller chains. Binance-Peg USDT on BNB Chain is left out on purpose: it is a wrapper backed by USDT held on other chains, so adding it would double count",
    note:"<p>Supply is only half of a stablecoin audit. The other half is reserves, which live off-chain in bank and custody accounts. The chain can prove how many tokens exist, never what backs them.</p>"},
-  {key:"bnb",sym:"BNB",name:"BNB",kind:"bnb",cg:"binancecoin",burnClaim:true,chainName:"BNB Chain",how:"burn address",claims:[]},
+  {key:"bnb",sym:"BNB",name:"BNB",kind:"bnb",cg:"binancecoin",chainName:"BNB Chain",how:"genesis minus locked minus burned",claims:[]},
   {key:"xrp",sym:"XRP",name:"XRP",kind:"xrp",cg:"ripple",chainName:"XRP Ledger",how:"ledger total_coins",claims:[]},
   {key:"usdc",sym:"USDC",name:"USD Coin",kind:"multi",dec:6,cg:"usd-coin",chainName:"7 chains",how:"totalSupply() on every chain",claims:[],
    members:[{label:"Ethereum",chain:"ethereum",address:"0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",dec:6},{label:"Base",chain:"base",address:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",dec:6},{label:"Arbitrum",chain:"arbitrum",address:"0xaf88d065e77c8cC2239327C5EDb3A432268e5831",dec:6},{label:"Polygon",chain:"polygon",address:"0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",dec:6},{label:"Avalanche",chain:"avalanche",address:"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",dec:6},{label:"OP Mainnet",chain:"optimism",address:"0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",dec:6},{label:"Solana (SPL)",sol:true,mint:"EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",dec:6}],
@@ -798,13 +798,22 @@ const NATIVE={
         s.h=Math.max(s.h,h);return {ev}}}};
   },
   async bnb(t){
-    const {r:dead}=await rpc("bsc","eth_getBalance 0xdEaD",p=>p.getBalance(DEAD));const {r:head}=await rpc("bsc","eth_blockNumber",p=>p.getBlockNumber());
-    return {dec:18,total:null,burned:dead,noCounter:"No supply counter on BNB Chain",receipt:`Native BNB held by ${short(DEAD)} at block ${fnum(head)} via ${host(CHAINS.bsc.rpcs[0])}`,
-      kv:[["Provably burned (0xdEaD)",fmt(dead,18)+" BNB"],["Original supply","200,000,000 BNB"],["Block",link("bsc","block",head,fnum(head))]],
-      rowsHead:["Burn sink","BNB","Share"],rows:[{l:"0xdEaD, real-time gas burns and auto-burns",a:DEAD,v:dead}],rowLink:a=>link("bsc","address",a),
-      flowsTitle:"Burned, provably",flows:[["Sitting in 0xdEaD",fmt(dead,18,2)+" BNB"]],
-      method:`<p>BNB is the native coin of BNB Chain and, like ETH, has no on-chain supply counter. What the chain does show is the burn address. Gas burns and the quarterly auto-burn now land in <code>0xdEaD</code>, which nobody holds a key for.</p><p>Burns from before the old Beacon Chain was retired happened on a different ledger, so the "burned" figure published by Binance should exceed what 0xdEaD holds. The gap is the part you're taking on trust.</p>`,
-      live:{ms:6000,state:{dead},tick:async s=>{const {r:d2}=await rpc("bsc","eth_getBalance 0xdEaD (live)",p=>p.getBalance(DEAD));const ev=[];if(d2!==s.dead){ev.push({tag:"burn",cls:"burn",html:`+${fmt(d2-s.dead,18,6)} BNB into 0xdEaD`,right:"BSC"});s.dead=d2;return {ev,burned:d2}}return {ev}}}};
+    /* BNB Chain mints nothing: block rewards are fees. At genesis (2020) all BNB was allocated to the TokenHub bridge contract.
+       So BNB in existence = TokenHub at genesis − TokenHub now (still locked, never released) − burn sinks. Every term is chain state. */
+    const HUB="0x0000000000000000000000000000000000001004";
+    const ARCH=["https://bsc-mainnet.public.blastapi.io"];
+    let gen=null,genSrc="";
+    for(const u of ARCH){try{const j=await jpost(u,{jsonrpc:"2.0",id:1,method:"eth_getBalance",params:[HUB,"0x1"]},"TokenHub balance at block 1 (archive)");if(j.result){gen=BigInt(j.result);genSrc=host(u);break}}catch(e){}}
+    if(gen==null){gen=176405560n*10n**18n;genSrc="cached genesis value"}
+    const [{r:hub},{r:dead},{r:zero},{r:head}]=await Promise.all([rpc("bsc","eth_getBalance TokenHub",p=>p.getBalance(HUB)),rpc("bsc","eth_getBalance 0xdEaD",p=>p.getBalance(DEAD)),rpc("bsc","eth_getBalance 0x0",p=>p.getBalance(ZERO)),rpc("bsc","eth_blockNumber",p=>p.getBlockNumber())]);
+    const total=gen-hub-dead-zero;
+    return {dec:18,total,burned:dead,receipt:`Genesis TokenHub allocation (block 1, via ${genSrc}) minus TokenHub, 0xdEaD and 0x0 balances at block ${fnum(head)}`,
+      kv:[["Allocated to TokenHub at genesis",fmt(gen,18)+" BNB"],["Still locked in TokenHub",fmt(hub,18)+" BNB"],["Burned to 0xdEaD",fmt(dead,18)+" BNB"],["Sent to 0x0",fmt(zero,18)+" BNB"],["Block",link("bsc","block",head,fnum(head))]],
+      rowsHead:["Subtracted","BNB","Share of genesis"],rowBase:gen,
+      rows:[{l:"TokenHub bridge, locked and never released (includes BNB burned on the old Beacon Chain)",a:HUB,v:hub},{l:"0xdEaD, real-time gas burns and auto-burns",a:DEAD,v:dead},{l:"Null address",a:ZERO,v:zero}],rowLink:a=>link("bsc","address",a),
+      flowsTitle:"Minted vs burned",flows:[["New BNB minted on BNB Chain","none, ever"],["Burned into 0xdEaD",fmt(dead,18,2)+" BNB"]],
+      method:`<p>BNB Chain keeps no supply counter, but it also never mints BNB: validators earn fees, not new coins. When the chain launched in 2020, the genesis block put the entire BNB supply of the day, ${fmt(gen,18)} BNB, into the TokenHub bridge contract. BNB only left TokenHub when someone moved it over from the old Beacon Chain.</p><p>So the coins that exist today are the genesis allocation, minus what is still sitting in TokenHub, minus what has been sent to burn addresses. All three are read from chain state, and the genesis figure is read from an archive node at block 1. BNB burned on the Beacon Chain before it shut down stays locked in TokenHub forever, which is why it is subtracted.</p>`,
+      live:{ms:6000,state:{dead},tick:async s=>{const {r:d2}=await rpc("bsc","eth_getBalance 0xdEaD (live)",p=>p.getBalance(DEAD));const ev=[];if(d2!==s.dead){const d=d2-s.dead;ev.push({tag:"burn",cls:"burn",html:`+${fmt(d,18,6)} BNB into 0xdEaD`,right:"BSC"});s.dead=d2;return {ev,burned:d2}}return {ev}}}};
   },
   async trx(t){
     const j=await jpost("https://api.trongrid.io/wallet/getburntrx",{},"wallet/getburntrx");const burned=BigInt(j.burnTrxAmount);
@@ -878,7 +887,7 @@ async function verifyNative(t){
     $("method").innerHTML=R.method;
     $("exclTitle").textContent=R.rowsHead?"Where the rest of it is":"Parked, dead or \"burned\"";
     const head=R.rowsHead||["Address","Balance","Share"];$("exclTbl").tHead.innerHTML=`<tr><th>${head[0]}</th><th class="r">${head[1]}</th><th class="r">${head[2]}</th></tr>`;
-    const base=R.total??R.burned??1n;
+    const base=R.rowBase??R.total??R.burned??1n;
     $("exclTbl").tBodies[0].innerHTML=(R.rows||[]).map(r=>`<tr><td><div>${esc(r.l)}</div>${r.a?`<div class="addr">${R.rowLink?R.rowLink(r.a,r):short(r.a)}</div>`:""}</td><td class="r">${fmt(r.v,R.dec)}</td><td class="r">${base>0n?(Number(r.v*100000n/base)/1000).toFixed(3)+"%":""}</td></tr>`).join("")||`<tr><td colspan="3" class="muted">Nothing on this chain sits outside circulation by protocol rule.</td></tr>`;
     $("flowTitle").textContent=R.flowsTitle||"Minted vs burned";$("flowKv").innerHTML=(R.flows||[]).map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("");
     renderClaims();
@@ -891,7 +900,7 @@ function startNativeLive(t,R,my){
   const tick=async()=>{if(my!==run)return;try{const out=await R.live.tick(R.live.state);if(my!==run)return;
       for(const e of out.ev)feedAdd(e.tag,e.cls,e.html,e.right);
       if(out.total!=null){t.supply=out.total;$("total").innerHTML=`${fmt(out.total,t.dec)}<small>${esc(t.sym)}</small>`}
-      if(out.circ!=null)t.circ=out.circ;if(out.burned!=null)t.burned=out.burned;if(out.ev.length)renderClaims();
+      if(out.circ!=null)t.circ=out.circ;if(out.burned!=null){if(t.kind==="bnb"&&t.burned!=null&&t.supply!=null){t.supply-=out.burned-t.burned;$("total").innerHTML=`${fmt(t.supply,t.dec)}<small>${esc(t.sym)}</small>`}t.burned=out.burned}if(out.ev.length)renderClaims();
       fails=0;setLive("good","Live")}catch(e){fails++;setLive("warn","Reconnecting")}
     liveTimer=setTimeout(tick,Math.min(120000,R.live.ms*(1+fails)))};
   liveTimer=setTimeout(tick,R.live.ms)}
