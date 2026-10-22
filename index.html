@@ -253,7 +253,7 @@ footer b{color:var(--mag);font-weight:400}
       <div class="row" style="justify-content:space-between"><h2>Issuance ledger <span class="slash">//</span> every print, from the chain</h2><span class="receipt" id="ledgerMeta"></span></div>
       <dl class="kv" id="ledgerTally"></dl>
       <p class="note" id="ledgerNote"></p>
-      <div class="tablewrap" style="max-height:440px;overflow:auto"><table id="ledgerTbl"><thead><tr><th>Date</th><th>What</th><th class="r">S</th><th>Block</th><th>Proof</th></tr></thead><tbody></tbody></table></div>
+      <div class="tablewrap" style="max-height:440px;overflow:auto"><table id="ledgerTbl"><thead><tr><th>Date</th><th>What</th><th>To</th><th class="r">S</th><th>Block</th><th>Proof</th></tr></thead><tbody></tbody></table></div>
     </section>
 
     <section class="panel">
@@ -341,7 +341,7 @@ const TOKENS=[
   {key:"zec",sym:"ZEC",name:"Zcash",kind:"zec",cg:"zcash",chainName:"Zcash",how:"consensus schedule",claims:[]},
   {key:"hype",sym:"HYPE",name:"Hyperliquid",kind:"hype",cg:"hyperliquid",chainName:"Hyperliquid L1",how:"L1 token state",claims:[]},
   {key:"s",sym:"S",name:"Sonic",chain:"sonic",kind:"sfc",cg:"sonic-3",chainName:"Sonic",ledger:"data/sonic-ledger.json",
-   excl:[{a:ZERO,l:"Null address"},{a:DEAD,l:"0xdEaD burn sink"},{a:"0xf8Fc6d1289734Fdffe8B58d8D394b33fe8CC545F",l:"Issuance recipient: every issueTokens call pays this multisig"}],claims:[]},
+   excl:[{a:DEAD,l:"0xdEaD burn sink"},{a:"0xf8Fc6d1289734Fdffe8B58d8D394b33fe8CC545F",l:"Bridge operator Safe: receives issueTokens mints"}],claims:[]},
   {key:"xmr",sym:"XMR",name:"Monero",kind:"xmr",cg:"monero",chainName:"Monero",how:"emission curve",claims:[]},
   EVMT("link","LINK","Chainlink","0x514910771AF9Ca656af840dff83E8264EcF986CA","chainlink"),
   EVMT("uni","UNI","Uniswap","0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984","uniswap"),
@@ -935,41 +935,49 @@ async function renderBoard(){
     }catch(e){tr.querySelector(".ch").innerHTML='<span class="muted">node busy</span>';tr.querySelector(".vd").innerHTML=`<span class="pill idle">Retry</span>`}});
 }
 
-/* ---------- issuance ledger: every large print, rebuilt from the chain and re-checkable in the browser ---------- */
-const KIND={i:"issueTokens, sent through the SFC owner multisig",b:"issueTokens inside a multisig batch (MultiSend)",c:"Validator reward claim",o:"Protocol mint (rewards or fee share)"};
+/* ---------- issuance ledger: every mint and burn, rebuilt from the chain and re-checkable in the browser ---------- */
+const KIND={m:"issueTokens",x:"burnNativeTokens (destroyed)",c:"Validator reward claim",o:"Protocol mint (rewards or fee share)"};
 async function renderLedger(t,my){
-  $("ledgerPanel").hidden=false;$("ledgerTbl").tBodies[0].innerHTML='<tr><td colspan="5" class="muted">Loading ledger…</td></tr>';
+  $("ledgerPanel").hidden=false;$("ledgerTbl").tBodies[0].innerHTML='<tr><td colspan="6" class="muted">Loading ledger…</td></tr>';
   try{
-    const L=await fetch(t.ledger).then(r=>r.json());if(my!==run)return;
+    const L=await fetch(t.ledger+"?v=2").then(r=>r.json());if(my!==run)return;t.L=L;
     const P=v=>parseUnits(String(v),18);
-    const G=P(L.counterAtGenesis);let I=0n,O=0n,nI=0;for(const r of L.rows){const v=P(r[3]);if(r[2]==="i"||r[2]==="b"){I+=v;nI++}else O+=v}
+    const G=P(L.counterAtGenesis);let I=0n,B=0n,O=0n,nI=0,nB=0;const byRec={};
+    for(const r of L.rows){const v=P(r[3]);if(r[2]==="m"){I+=v;nI++;byRec[r[4]]=(byRec[r[4]]||0n)+v}else if(r[2]==="x"){B+=v;nB++}else O+=v}
     const sfc=p=>new Contract(SFC,SFC_ABI,p);
     const [{r:atHead},{r:nullB},{r:deadB}]=await Promise.all([rpc(t.chain,`SFC.totalSupply() @${L.head} (ledger head)`,p=>sfc(p).totalSupply({blockTag:L.head})),rpc(t.chain,"eth_getBalance 0x0",p=>p.getBalance(ZERO)),rpc(t.chain,"eth_getBalance 0xdEaD",p=>p.getBalance(DEAD))]);
     if(my!==run)return;
-    const now=t.supply;const R=atHead-G-I-O;const since=now-atHead;const net=now-nullB-deadB;
+    const now=t.supply;const R=atHead-G-I+B-O;const since=now-atHead;const zeroOutside=nullB-B;const net=now-(zeroOutside>0n?zeroOutside:0n)-deadB;
     const matches=atHead===P(L.counterAtHead);
+    const val=0n+[...Array(21).keys()].slice(1).reduce((a,i)=>a+(byRec[i]||0n),0n);
     $("ledgerMeta").textContent=`built at block ${fnum(L.head)} · re-checked live now`;
-    const row=(k,v,sign="")=>`<dt>${k}</dt><dd>${sign}${fmt(v,18)} S</dd>`;
-    $("ledgerTally").innerHTML=row("Counter at genesis (block 1)",G)+row(`issueTokens, ${nI} calls by the owner multisig`,I,"+ ")+row("Large protocol mints (reward claims, fee share)",O,"+ ")+row("Small rewards and fee mints, net of fee burns",R,"+ ")+
+    const row=(k,v,sign="",sub=false)=>`<dt${sub?' style="padding-left:14px"':""}>${k}</dt><dd${sub?' class="muted"':""}>${sign}${fmt(v,18)} S</dd>`;
+    $("ledgerTally").innerHTML=row("Counter at genesis (block 1)",G)+
+      row(`issueTokens, ${nI} calls by the owner multisig`,I,"+ ")+
+      row("to the bridge operator Safe",byRec[21]||0n,"",true)+row("to Sonic Labs' 20 genesis validators",val,"",true)+row("to a test address",byRec[0]||0n,"",true)+
+      row(`burnNativeTokens, ${nB} burns`,B,"− ")+
+      row("Large reward claims and fee mints",O,"+ ")+row("Small rewards and fee mints, net of fee burns",R,"+ ")+
       `<dt><strong>SFC counter at ledger block ${fnum(L.head)}</strong></dt><dd><strong>${fmt(atHead,18)} S</strong> <span class="pill ${matches?"good":"bad"}">${matches?"matches chain":"changed"}</span></dd>`+
       row("Change since then (live)",since,since>=0n?"+ ":"")+`<dt><strong>Live SFC counter</strong></dt><dd><strong>${fmt(now,18)} S</strong></dd>`+
-      row("Held at 0x0",nullB,"− ")+row("Held at 0xdEaD",deadB,"− ")+`<dt><strong>Counter outside burn sinks</strong></dt><dd><strong>${fmt(net,18)} S</strong></dd>`;
+      row("Sent to 0x0 outside the SFC burn",zeroOutside>0n?zeroOutside:0n,"− ")+row("Held at 0xdEaD",deadB,"− ")+
+      `<dt><strong>S in existence, outside burn addresses</strong></dt><dd><strong>${fmt(net,18)} S</strong></dd>`;
     const big=since>10n**24n;
-    $("ledgerNote").innerHTML=(big?`<span class="pill bad">Unrecorded print</span> The counter has grown by more than 1M S since this ledger was built. Use Locate in Print events to pin it to a block. `:`No print of 1M S or more since the ledger was built. `)+
-      `Every row below is a block where the SFC supply counter jumped by 1M S or more. Hit Prove on any row and your browser reads the counter either side of that block and decodes the transaction that caused it. ${esc(L.method)}`;
+    $("ledgerNote").innerHTML=(big?`<span class="pill bad">Unrecorded print</span> The counter has grown by more than 1M S since this ledger was built. Use Locate in Print events to pin it to a block. `:`No change of 1M S or more since the ledger was built. `)+
+      `The 0x0 address holds ${fmt(nullB,18)} S, but ${fmt(B,18)} of that arrived through burnNativeTokens, which already took it out of the counter, so only the rest is subtracted. Hit Prove on any row and your browser reads the counter either side of that block and decodes the transaction. ${esc(L.method)}`;
     const tb=$("ledgerTbl").tBodies[0];tb.innerHTML="";
     for(const r of [...L.rows].reverse()){
-      const tr=el(`<tr><td>${new Date(r[1]*1000).toISOString().slice(0,10)}</td><td>${KIND[r[2]]}</td><td class="r">${fnum(Number(r[3]),r[3].includes(".")?2:0)}</td><td>${link(t.chain,"block",r[0],fnum(r[0]))}</td><td class="pf"><button type="button">Prove</button></td></tr>`);
+      const rc=r[4]>=0?L.recipients[r[4]]:null;
+      const tr=el(`<tr><td>${new Date(r[1]*1000).toISOString().slice(0,10)}</td><td>${KIND[r[2]]}</td><td>${rc?`${esc(rc.l)}<div class="addr">${link(t.chain,"address",rc.a)}</div>`:'<span class="muted">—</span>'}</td><td class="r">${r[2]==="x"?"−":"+"}${fnum(Number(r[3]),r[3].includes(".")?2:0)}</td><td>${link(t.chain,"block",r[0],fnum(r[0]))}</td><td class="pf"><button type="button">Prove</button></td></tr>`);
       tr.querySelector("button").addEventListener("click",()=>proveRow(t,r,tr.querySelector(".pf")));tb.appendChild(tr);
     }
-  }catch(e){$("ledgerTbl").tBodies[0].innerHTML=`<tr><td colspan="5" class="muted">Ledger could not be checked right now (${esc(e.message||e)}). Try again in a minute.</td></tr>`}
+  }catch(e){$("ledgerTbl").tBodies[0].innerHTML=`<tr><td colspan="6" class="muted">Ledger could not be checked right now (${esc(e.message||e)}). Try again in a minute.</td></tr>`}
 }
 async function proveRow(t,r,cell){
   cell.innerHTML='<span class="muted">Reading the chain…</span>';
   try{
     const b=r[0];const sfc=p=>new Contract(SFC,SFC_ABI,p);
     const [{r:v0},{r:v1},{r:blk}]=await Promise.all([rpc(t.chain,`SFC.totalSupply() @${b-1}`,p=>sfc(p).totalSupply({blockTag:b-1})),rpc(t.chain,`SFC.totalSupply() @${b}`,p=>sfc(p).totalSupply({blockTag:b})),rpc(t.chain,`eth_getBlockByNumber ${b} (full txs)`,p=>p.getBlock(b,true))]);
-    const d=v1-v0;const ok=d===parseUnits(String(r[3]),18);
+    const d=v1-v0;const exp=parseUnits(String(r[3]),18);const ok=r[2]==="x"?d<=-exp+10n**18n&&d>=-exp-10n**24n:d>=exp&&d<=exp+10n**24n;
     const sel=keccakId("issueTokens(uint256)").slice(0,10);const MSI=new ethers.Interface(["function multiSend(bytes transactions)"]);let proof="";
     for(const x of (blk.prefetchedTransactions||[])){
       const to=(x.to||"").toLowerCase();
